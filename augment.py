@@ -2,14 +2,14 @@ import json
 import cv2
 import os
 import numpy as np
-from augmint import augmints  # Assuming you have augmints for transformations
+from augmint import Augments  # Assuming you have the Augments class for transformations
 from tqdm import tqdm  # For progress bar
 
 # Path to COCO dataset annotations and images
 ANNOTATION_PATH = "F:/Kuliah/Semester 5/Kecebut/dataset/Annotations.json"
 IMAGE_DIR = "F:/Kuliah/Semester 5/Kecebut/dataset/images"
-OUTPUT_DIR = "F:/Kuliah/Semester 5/Kecebut/dataset/dataset_fix/images"
-OUTPUT_ANNOTATION_PATH = "F:/Kuliah/Semester 5/Kecebut/dataset/dataset_fix/augmented_val.json"
+OUTPUT_DIR = "F:/Kuliah/Semester 5/Kecebut/dataset/dataset_tes/images"
+OUTPUT_ANNOTATION_PATH = "F:/Kuliah/Semester 5/Kecebut/dataset/dataset_tes/augmented_val.json"
 
 # Parameters
 num_augmented_copies = 1  # Number of augmented copies per image
@@ -32,14 +32,11 @@ augmented_annotations = []
 annotation_id_counter = max(anno['id'] for anno in coco_data['annotations']) + 1
 
 # Initialize augmentation pipeline
-augmenter = augmints()
+augmenter = Augments()
 augmenter.add("rotate", p=0.5, limit=30)
-augmenter.add("hue_saturation_value", p=0.5, hue_shift_limit=10, sat_shift_limit=20, val_shift_limit=20)
 augmenter.add("brightness_contrast", p=0.5, brightness_limit=0.2, contrast_limit=0.2)
 augmenter.add("blur", p=0.3, blur_limit=5)
-augmenter.add("motion_blur", p=0.3, blur_limit=5)
-augmenter.add("optical_distortion", p=0.3)
-augmenter.add("color_jitter", p=0.5, brightness=0.1, contrast=0.1, saturation=0.1, hue=5)
+augmenter.add("rgb_shift", p=0.4, r_shift_limit=40, g_shift_limit=30, b_shift_limit=50)
 
 # Augmentation process
 for image_info in tqdm(coco_data['images'], desc="Processing Images"):
@@ -65,16 +62,13 @@ for image_info in tqdm(coco_data['images'], desc="Processing Images"):
         # Apply augmentations
         aug_img, aug_bboxes = augmenter.apply_augmentations(img, bboxes=bboxes)
 
-        # Convert from RGB to BGR format for OpenCV
-        aug_img = cv2.cvtColor(aug_img, cv2.COLOR_RGB2BGR)
-
         # Generate unique image ID and filename
         new_image_id = image_info['id'] + 10000 + i  # Ensure unique ID
         output_filename = f"augmented_{image_info['id']}_{i}.jpg"
         aug_img_path = os.path.join(OUTPUT_DIR, output_filename)
 
         # Save augmented image
-        if aug_img is not None and aug_img.shape[2] == 3:  # Check for valid image data
+        if aug_img is not None and len(aug_img.shape) == 3:  # Check for valid image data
             saved = cv2.imwrite(aug_img_path, aug_img)
             if not saved:
                 print(f"Error: Failed to save image at {aug_img_path}")
